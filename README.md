@@ -65,7 +65,7 @@ In this assignment, you are asked to run a few experiment to prove your system w
     - `netdb.software.benchmark.TestingParameters.NUM_RTES` in `benchmark_tpcc.propeties`
     - Generally, the more servers you have, you need to add more RTEs to approach the limitation of your system
 
-In our experiment, the throughput of running two servers in a single machine is not too much better than running one servers in a single machine. To show the benefits of partitions, we **highly recommend** you running each process on the different physical machines.
+In our experiment, the throughput of running two servers in a single machine is not too much better than running one server in a single machine. To show the benefits of partitions, we **highly recommend** you running each process on different physical machines.
 
 Note: Remember to add your stored procedure factory class name to the `org.vanilladb.dd.schedule.calvin.CalvinScheduler.FACTORY_CLASS` and change the value of `org.vanilladb.dd.server.VanillaDdDb.SERVICE_TYPE` in `vanilladddb.propeties`
 
@@ -100,4 +100,4 @@ If you want to demo earlier, please contact TAs.
 
 ## Deadline
 
-TBD
+Sumbit your work before **2015/06/30 (Tue.) 23:59:59**.
