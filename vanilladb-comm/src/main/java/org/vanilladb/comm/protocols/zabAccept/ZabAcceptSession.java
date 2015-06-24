@@ -202,13 +202,72 @@ public class ZabAcceptSession extends Session {
 
 		int epoch = write.getMessage().popInt();
 		long sn = write.getMessage().popLong();
-		// TODO Assignment 6
-		// Check if the write event is correct
-		// If so, there are two messages to send
-		// 	1. send the total order message to ZabTOB layer for caching so that it can use it when the ZabCommit event is received later
-		//  2. send the WriteAck event back to Leader
-		// If not, send the Nack event back to Leader
-		// Hint, you may use epoch and sn to identify the correctness of the write event
+		// check if the write event is correct
+		if (this.epoch > epoch || this.sn >= sn) {
+			// check failed
+			if (Logger.getLogger(ZabAcceptSession.class.getName()).isLoggable(
+					Level.FINE)) {
+				Logger.getLogger(ZabAcceptSession.class.getName()).fine(
+						"sending nack for epoch = " + epoch + ", sn = " + sn);
+			}
+			// pp2p
+			try {
+
+				Nack ev = new Nack(write.getChannel(), Direction.DOWN, this);
+				ev.source = correct.getSelfProcess().getSocketAddress();
+				ev.dest = write.source;
+				ev.setSourceSession(this);
+				ev.init();
+				if (ev.dest.equals(ev.source))
+					handleNack(ev);
+				else
+					ev.go();
+
+			} catch (AppiaEventException ex) {
+				ex.printStackTrace();
+			}
+		} else {
+			if (Logger.getLogger(ZabAcceptSession.class.getName()).isLoggable(
+					Level.FINE)) {
+				Logger.getLogger(ZabAcceptSession.class.getName()).fine(
+						"sending WriteAck for epoch = " + epoch + ", sn = "
+								+ sn);
+			}
+			
+			// send the total order message to ZabTOB layer for caching
+			
+			PaxosProposal v = (PaxosProposal) write.getMessage().popObject();
+			this.epoch = epoch;
+			this.sn = sn;
+			val = v;
+			
+			try {
+				ZabCacheTom zct = new ZabCacheTom(write.getChannel(), Direction.UP, this, (TotalOrderMessage)((PaxosObjectProposal)v).obj);
+				zct.init();
+				zct.go();
+			} catch (AppiaEventException ex) {
+				ex.printStackTrace();
+			}
+
+			// pp2p
+			try {
+				WriteAck ev = new WriteAck(write.getChannel(), Direction.DOWN,
+						this);
+				ev.getMessage().pushInt(epoch);
+				ev.getMessage().pushLong(sn);
+				ev.source = correct.getSelfProcess().getSocketAddress();
+				ev.dest = write.source;
+				ev.setSourceSession(this);
+				ev.init();
+
+				// if ((ev.dest).equals(ev.source))
+				// handleWriteAck(ev);
+				// else
+				ev.go();
+			} catch (AppiaEventException ex) {
+				ex.printStackTrace();
+			}
+		}	
 	}
 
 	/**
@@ -219,21 +278,44 @@ public class ZabAcceptSession extends Session {
 
 		if (proposed && wa.getMessage().popLong() == this.curr_sn
 				&& wa.getMessage().popInt() == this.curr_epoch) {
-			
 			wAcks += 1;
-			
-			// TODO Assignment 6
-			// Check if the number of Ack received is over majority to decide whether the paxos request is finished.
-			// If so, create a PaxosReturn event and send it UP to ZabTOBLayer.
-			// *Remember to set the PaxosPropose object's abort to false and pack this object as the PaxosReturn's decision			
-		
 
+			if (Logger.getLogger(ZabAcceptSession.class.getName()).isLoggable(
+					Level.FINE)) {
+				Logger.getLogger(ZabAcceptSession.class.getName())
+						.fine("Valid WriteAck, wAcks = " + wAcks
+								+ ", Paxos Time = "
+								+ (System.currentTimeMillis() - paxosStartTime));
+			}
+
+			writeDecide(wa.getChannel());
 		} else {
 			if (Logger.getLogger(ZabAcceptSession.class.getName()).isLoggable(
 					Level.FINE)) {
 				Logger.getLogger(ZabAcceptSession.class.getName())
 						.fine("invalid WriteAck, wAcks = " + wAcks
 								+ ", Paxos Time = "
+								+ (System.currentTimeMillis() - paxosStartTime));
+			}
+		}
+	}
+	
+	private void writeDecide(Channel channel) {
+		if (wAcks > correct.getSize() / 2) {
+			wAcks = 0;
+			proposed = false;
+			try {
+				PaxosReturn ev = new PaxosReturn(channel, Direction.UP, this);
+				tempValue.abort = false;
+				ev.decision = tempValue;
+				ev.go();
+			} catch (AppiaEventException ex) {
+				ex.printStackTrace();
+			}
+			if (Logger.getLogger(ZabAcceptSession.class.getName()).isLoggable(
+					Level.FINE)) {
+				Logger.getLogger(ZabAcceptSession.class.getName())
+						.fine("Paxos Time: "
 								+ (System.currentTimeMillis() - paxosStartTime));
 			}
 		}

@@ -205,11 +205,26 @@ public class ZabTOBSession extends Session {
 		proposed = false;
 		PaxosProposal pp = pr.decision;
 		PaxosObjectProposal pop = (PaxosObjectProposal) pp;
-		// TODO Assignment 6
-		// check if PaxosProposal is abort
-		// if not, create a ZabCommit event to notifiy all servers
-		// if so, add this pop back to the msg_queue
-		
+		if (!pp.abort) {
+			if (Logger.getLogger(ZabTOBSession.class.getName()).isLoggable(
+					Level.FINE)) {
+				Logger.getLogger(ZabTOBSession.class.getName()).fine(
+						"consensus decided " + tosn);
+				Logger.getLogger(ZabTOBSession.class.getName()).fine(
+						"TOB Queue size = " + this.msg_queue.size());
+			}
+			try {
+				ZabCommit zc = new ZabCommit(this.channel, Direction.DOWN, this);
+				zc.init();
+				zc.go();
+
+			} catch (AppiaEventException ex) {
+				ex.printStackTrace();
+			}
+
+		} else {
+			msg_queue.add(pop.obj);
+		}
 
 		zabPropose();
 	}
@@ -226,8 +241,6 @@ public class ZabTOBSession extends Session {
 	private void zabPropose() {
 		if (!proposed && !msg_queue.isEmpty()) {
 			proposed = true;
-			
-			// prepare the TotalOrderMessage list (grouping all total order message into a single one)
 			List<Object> list = new LinkedList<Object>();
 			while (!msg_queue.isEmpty()) {
 				for (Object o : ((TotalOrderMessage) msg_queue.poll())
@@ -235,13 +248,23 @@ public class ZabTOBSession extends Session {
 					list.add(o);
 				}
 			}
+
 			TotalOrderMessage tom = new TotalOrderMessage(list.toArray(new Object[0]));
-			
-			// TODO Assignment 6
-			// Initialize the total order message (remember to update the totalOrderIdStart for further use)
-			// Pack the total order message into a PaxosObjectProposal
-			// Create a PaxosPropose event that contains the PaxosObjectProposal
-			// Initialize the PaxosPropose event and send it downward
+			tom.setTotalOrderIdStart(toid);
+			tom.setTotalOrderSequenceNumber(tosn++);
+			toid += tom.getMessages().length;
+			PaxosObjectProposal proposal = new PaxosObjectProposal(tom);
+			try {
+				PaxosPropose event = new PaxosPropose(this.channel,
+						Direction.DOWN, this);
+				event.value = proposal;
+				event.epoch = this.epoch;
+				event.sn = ++this.sn;
+				event.init();
+				event.go();
+			} catch (AppiaEventException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	
