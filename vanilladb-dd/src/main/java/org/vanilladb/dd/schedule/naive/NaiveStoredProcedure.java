@@ -117,6 +117,16 @@ public abstract class NaiveStoredProcedure<H extends StoredProcedureParamHelper>
 		return paramHelper.isReadOnly();
 	}
 	
+	@Override
+	public boolean isMaster() {
+		return true;
+	}
+	
+	@Override
+	public boolean isParticipant() {
+		return true;
+	}
+	
 	protected void addReadKey(RecordKey readKey) {
 		readKeys.add(readKey);
 	}

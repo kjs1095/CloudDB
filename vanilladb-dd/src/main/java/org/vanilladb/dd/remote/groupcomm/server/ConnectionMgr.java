@@ -21,6 +21,7 @@ import org.vanilladb.dd.remote.groupcomm.Tuple;
 import org.vanilladb.dd.remote.groupcomm.TupleSet;
 import org.vanilladb.dd.server.VanillaDdDb;
 import org.vanilladb.dd.server.VanillaDdDb.ServiceType;
+import org.vanilladb.dd.cache.calvin.CalvinCacheMgr;
 
 public class ConnectionMgr implements ServerTotalOrderedMessageListener,
 		ServerP2pMessageListener, ServerNodeFailListener {
@@ -93,6 +94,8 @@ public class ConnectionMgr implements ServerTotalOrderedMessageListener,
 			for (Tuple t : ts.getTupleSet()) {
 				if (VanillaDdDb.serviceType() == ServiceType.CALVIN) {
 					// TODO: Cache remote records
+					// phase 4: Collect remote reads
+					((CalvinCacheMgr)VanillaDdDb.cacheMgr()).addCacheTuple(t);
 				} else
 					throw new IllegalArgumentException(
 							"Service Type Not Found Exception");

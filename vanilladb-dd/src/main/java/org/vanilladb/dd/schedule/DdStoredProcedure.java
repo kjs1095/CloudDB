@@ -10,4 +10,8 @@ public interface DdStoredProcedure extends StoredProcedure {
 	RecordKey[] getWriteSet();
 
 	boolean isReadOnly();
+	
+	boolean isMaster();
+	
+	boolean isParticipant();
 }

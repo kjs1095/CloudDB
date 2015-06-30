@@ -6,9 +6,11 @@ import java.util.logging.Logger;
 import org.vanilladb.core.server.VanillaDb;
 import org.vanilladb.dd.cache.CacheMgr;
 import org.vanilladb.dd.cache.naive.NaiveCacheMgr;
+import org.vanilladb.dd.cache.calvin.CalvinCacheMgr;
 import org.vanilladb.dd.remote.groupcomm.server.ConnectionMgr;
 import org.vanilladb.dd.schedule.Scheduler;
 import org.vanilladb.dd.schedule.naive.NaiveScheduler;
+import org.vanilladb.dd.schedule.calvin.CalvinScheduler;
 import org.vanilladb.dd.storage.log.DdLogMgr;
 import org.vanilladb.dd.storage.metadata.HashBasedPartitionMetaMgr;
 import org.vanilladb.dd.storage.metadata.PartitionMetaMgr;
@@ -81,7 +83,7 @@ public class VanillaDdDb extends VanillaDb {
 			break;
 		case CALVIN:
 			// TODO: Implement this
-			// cacheMgr = new CalvinCacheMgr();
+			cacheMgr = new CalvinCacheMgr();
 			break;
 		default:
 			throw new UnsupportedOperationException();
@@ -95,7 +97,7 @@ public class VanillaDdDb extends VanillaDb {
 			break;
 		case CALVIN:
 			// TODO: Implement this
-			// scheduler = initCalvinScheduler();
+			scheduler = initCalvinScheduler();
 			break;
 		default:
 			throw new UnsupportedOperationException();
@@ -108,13 +110,12 @@ public class VanillaDdDb extends VanillaDb {
 		return scheduler;
 	}
 
-	/* TODO: Implement this
+	// TODO: Implement this
 	public static Scheduler initCalvinScheduler() {
 		CalvinScheduler scheduler = new CalvinScheduler();
 		taskMgr().runTask(scheduler);
 		return scheduler;
 	}
-	*/
 
 	public static void initPartitionMetaMgr() {
 		Class<?> parMgrCls = DDProperties.getLoader().getPropertyAsClass(
